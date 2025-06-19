@@ -1,0 +1,25 @@
+﻿<!DOCTYPE html>
+
+<html>
+	<head>
+		<title>Додавання AR.js до програми</title>
+		<meta charset="utf-8">
+		<script src="../aframe/aframe.min.js"></script>
+   		<script src="../arjs/aframe-ar.js"></script>
+	</head>
+        	<a-scene embedded arjs='trackingMethod: best;'>
+			<a-anchor hit-testing-enabled='true'>
+				<a-torus position="-2 1 -5" color="red" radius="1.2" animation="property: components.material.material.color; type: color; from: green; to: red; loop: true; dur: 1000"></a-torus>
+				<a-plane width="7" height="7" rotation="-55 0 0" position="-2 -2 -5" color="" src="../assets/chill_girl.jpg"></a-plane>
+				<a-cylinder color="white" height="2" radius="0.05" position="-2 -1 -5"></a-cylinder>
+				<a-cylinder color="green" height="2" radius="0.05" position="-3 -1 -5"></a-cylinder>
+				<a-torus-knot color="orange" radius="1.2" position="-3 1 -5" animation="property: rotation; to: 0 0 360; loop: true; dur: 10000"></a-torus-knot>
+				<a-plane width="9" height="2" position="3 1 -9"></a-plane>
+				<a-text value="Правицький Станіслав" font="arial-msdf.json" negate="false" color="pink" width="10" position="-0.5 1 -6" 
+				animation="property: rotation; to: 360 360 0; loop: true; dur: 8000"></a-text>
+			</a-anchor>	
+			
+        		<a-entity camera></a-entity>
+        	</a-scene>
+    	</body>
+</html>

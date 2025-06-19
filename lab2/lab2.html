@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Saturn AR Scene with Three.js and MindAR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    #ar-container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.141.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.141.0/examples/jsm/",
+        "mind-ar": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="ar-container"></div>
+  <script type="module">
+    import * as THREE from 'three';
+    import 'mind-ar';
+
+    // Перевірка наявності MINDAR
+    if (!window.MINDAR) {
+      console.error('MINDAR не завантажено');
+      throw new Error('MINDAR is not loaded');
+    }
+
+    // Ініціалізація MindAR
+    // Переконайтеся, що шлях до файлу targets.mind правильний відносно вашого HTML-файлу
+    const mindarThree = new window.MINDAR.IMAGE.MindARThree({
+      container: document.getElementById('ar-container'),
+      imageTargetSrc: '../assets/targets.mind' // Перевірте, чи файл існує за цим шляхом
+    });
+
+    // Отримання renderer, scene та camera від MindAR
+    const { renderer, scene, camera } = mindarThree;
+
+    // Додавання якоря
+    const anchor = mindarThree.addAnchor(0);
+
+    // Створення групи для Сатурна та його кілець
+    const group = new THREE.Group();
+
+    // Сатурн
+    const saturnGeometry = new THREE.SphereGeometry(0.6, 32, 32);
+    const saturnMaterial = new THREE.MeshStandardMaterial({
+      map: new THREE.TextureLoader().load('../week05/2k_saturn.jpg')
+    });
+    const saturn = new THREE.Mesh(saturnGeometry, saturnMaterial);
+    group.add(saturn);
+
+    // Кільця
+    const ringGeometry = new THREE.RingGeometry(0.745, 1.37, 64);
+    const ringMaterial = new THREE.MeshStandardMaterial({
+      map: new THREE.TextureLoader().load('../week05/2k_saturn_ring_alpha.png'),
+      side: THREE.DoubleSide,
+      transparent: true
+    });
+    const rings = new THREE.Mesh(ringGeometry, ringMaterial);
+    rings.rotation.x = Math.PI / 2;
+    group.add(rings);
+
+    // Нахил осі Сатурна (27°)
+    group.rotation.x = THREE.MathUtils.degToRad(27);
+
+    // Додавання групи до якоря
+    anchor.group.add(group);
+
+    // Джерело світла
+    const pointLight = new THREE.PointLight(0xffffff, 1.5, 10);
+    pointLight.position.set(5, 0, 0);
+    scene.add(pointLight);
+
+    // Змінна для відстеження стану якоря
+    let isTargetVisible = false;
+
+    // Анімація
+    const animate = () => {
+      requestAnimationFrame(animate);
+
+      // Перевірка стану якоря для дебаґінгу
+      if (anchor.group.visible && !isTargetVisible) {
+        console.log('Маркер знайдено!');
+        isTargetVisible = true;
+      } else if (!anchor.group.visible && isTargetVisible) {
+        console.log('Маркер втрачено!');
+        isTargetVisible = false;
+      }
+
+      group.rotation.y += (2 * Math.PI) / (10 * 60);
+      renderer.render(scene, camera);
+    };
+
+    // Запуск MindAR
+    mindarThree.start().then(() => {
+      console.log('MindAR успішно запущений');
+      animate();
+    }).catch(err => {
+      console.error('Помилка запуску MindAR:', err);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WebAR Location-Based Scene for Quest</title>
+  <!-- Підключаємо A-Frame -->
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <!-- Підключаємо AR.js з підтримкою location-based AR -->
+  <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.5/aframe/build/aframe-ar.min.js"></script>
+  <!-- Компонент для геолокаційного позиціонування -->
+  <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.5/aframe/extras/geolocation/aframe-location-based.min.js"></script>
+</head>
+<body>
+  <!-- A-Frame сцена з location-based AR -->
+  <a-scene
+    vr-mode-ui="enabled: false"
+    arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
+    location-based
+    renderer="antialias: true; alpha: true; logarithmicDepthBuffer: true;">
+    
+    <!-- Модель 1: куб ліворуч від користувача (5 метрів ліворуч) -->
+    <a-box
+      gps-entity-place="latitude: 0; longitude: 0"
+      position="-5 0 0"
+      scale="0.5 0.5 0.5"
+      rotation="0 45 0"
+      color="blue">
+    </a-box>
+    
+    <!-- Модель 2: сфера праворуч від користувача (5 метрів праворуч) -->
+    <a-sphere
+      gps-entity-place="latitude: 0; longitude: 0"
+      position="5 0 0"
+      scale="0.5 0.5 0.5"
+      rotation="0 -45 0"
+      color="red">
+    </a-sphere>
+
+    <!-- Камера з підтримкою геолокації -->
+    <a-camera gps-camera rotation-reader></a-camera>
+  </a-scene>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AR Quadrilateral Calculator</title>
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.5/aframe/build/aframe-ar.js"></script>
+  <style>
+    /* Стилі для текстового блоку */
+    #result {
+      position: fixed;
+      bottom: 10px; /* Відступ від нижнього краю */
+      left: 10px; /* Відступ від лівого краю */
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 14px; /* Розмір шрифту 14 пікселів */
+      line-height: 1.5; /* Висота рядка */
+      background: rgba(0, 0, 0, 0.5); /* Напівпрозорий фон для кращої видимості */
+      padding: 5px 10px; /* Внутрішні відступи */
+      border-radius: 5px; /* Закруглені кути */
+      z-index: 10; /* Щоб текст був поверх сцени */
+    }
+  </style>
+</head>
+<body>
+  <a-scene embedded arjs="trackingMethod: best; sourceType: webcam; cameraParam: https://raw.githack.com/AR-js-org/AR.js/master/data/data/camera_para.dat; markersAreaEnabled: false;">
+    <!-- Маркер A -->
+    <a-marker type="pattern" url="../assets/pattern-letterA.patt">
+      <a-box position="0 0.5 0" material="color: red;"></a-box>
+    </a-marker>
+
+    <!-- Маркер B -->
+    <a-marker type="pattern" url="../assets/pattern-letterB.patt">
+      <a-box position="0 0.5 0" material="color: blue;"></a-box>
+    </a-marker>
+
+    <!-- Маркер C -->
+    <a-marker type="pattern" url="../assets/pattern-letterC.patt">
+      <a-box position="0 0.5 0" material="color: green;"></a-box>
+    </a-marker>
+
+    <!-- Маркер D -->
+    <a-marker type="pattern" url="../assets/pattern-letterD.patt">
+      <a-box position="0 0.5 0" material="color: yellow;"></a-box>
+    </a-marker>
+
+    <!-- Камера -->
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <!-- Текстовий блок для відображення результатів -->
+  <div id="result">Waiting for markers...</div>
+
+  <script>
+    // Отримання посилань на маркери
+    const markerA = document.querySelector('a-marker[type="pattern"][url="../assets/pattern-letterA.patt"]');
+    const markerB = document.querySelector('a-marker[type="pattern"][url="../assets/pattern-letterB.patt"]');
+    const markerC = document.querySelector('a-marker[type="pattern"][url="../assets/pattern-letterC.patt"]');
+    const markerD = document.querySelector('a-marker[type="pattern"][url="../assets/pattern-letterD.patt"]');
+
+    // Діагностика: перевірка, чи маркери знайдені
+    console.log('Markers:', { markerA, markerB, markerC, markerD });
+
+    // Функція для отримання позицій маркерів
+    function getMarkerPositions() {
+      const posA = markerA && markerA.object3D.visible ? markerA.object3D.position : null;
+      const posB = markerB && markerB.object3D.visible ? markerB.object3D.position : null;
+      const posC = markerC && markerC.object3D.visible ? markerC.object3D.position : null;
+      const posD = markerD && markerD.object3D.visible ? markerD.object3D.position : null;
+      console.log('Positions:', { posA, posB, posC, posD });
+      return { posA, posB, posC, posD };
+    }
+
+    // Створення ліній
+    const scene = document.querySelector('a-scene');
+    const lineAB = document.createElement('a-entity');
+    const lineBC = document.createElement('a-entity');
+    const lineCD = document.createElement('a-entity');
+    const lineDA = document.createElement('a-entity');
+
+    lineAB.setAttribute('line', { start: { x: 0, y: 0, z: 0 }, end: { x: 0, y: 0, z: 0 }, color: 'white' });
+    lineBC.setAttribute('line', { start: { x: 0, y: 0, z: 0 }, end: { x: 0, y: 0, z: 0 }, color: 'white' });
+    lineCD.setAttribute('line', { start: { x: 0, y: 0, z: 0 }, end: { x: 0, y: 0, z: 0 }, color: 'white' });
+    lineDA.setAttribute('line', { start: { x: 0, y: 0, z: 0 }, end: { x: 0, y: 0, z: 0 }, color: 'white' });
+
+    scene.appendChild(lineAB);
+    scene.appendChild(lineBC);
+    scene.appendChild(lineCD);
+    scene.appendChild(lineDA);
+
+    // Функція для обчислення відстані між двома точками
+    function distance(pos1, pos2) {
+      return Math.sqrt(
+        Math.pow(pos1.x - pos2.x, 2) +
+        Math.pow(pos1.y - pos2.y, 2) +
+        Math.pow(pos1.z - pos2.z, 2)
+      );
+    }
+
+    // Функція для обчислення периметра
+    function calculatePerimeter(posA, posB, posC, posD) {
+      if (!posA || !posB || !posC || !posD) return 0;
+      const AB = distance(posA, posB);
+      const BC = distance(posB, posC);
+      const CD = distance(posC, posD);
+      const DA = distance(posD, posA);
+      return AB + BC + CD + DA;
+    }
+
+    // Функція для обчислення площі трикутника
+    function triangleArea(pos1, pos2, pos3) {
+      const a = distance(pos1, pos2);
+      const b = distance(pos2, pos3);
+      const c = distance(pos3, pos1);
+      const s = (a + b + c) / 2;
+      return Math.sqrt(s * (s - a) * (s - b) * (s - c));
+    }
+
+    // Функція для обчислення площі чотирикутника
+    function calculateArea(posA, posB, posC, posD) {
+      if (!posA || !posB || !posC || !posD) return 0;
+      const areaABC = triangleArea(posA, posB, posC);
+      const areaADC = triangleArea(posA, posD, posC);
+      return areaABC + areaADC;
+    }
+
+    // Компонент для оновлення ліній
+    AFRAME.registerComponent('update-lines', {
+      tick: function () {
+        const { posA, posB, posC, posD } = getMarkerPositions();
+        if (posA && posB) lineAB.setAttribute('line', { start: posA, end: posB });
+        if (posB && posC) lineBC.setAttribute('line', { start: posB, end: posC });
+        if (posC && posD) lineCD.setAttribute('line', { start: posC, end: posD });
+        if (posD && posA) lineDA.setAttribute('line', { start: posD, end: posA });
+      }
+    });
+
+    // Компонент для оновлення результатів
+    AFRAME.registerComponent('update-results', {
+      tick: function () {
+        const { posA, posB, posC, posD } = getMarkerPositions();
+        if (posA && posB && posC && posD) {
+          const perimeter = calculatePerimeter(posA, posB, posC, posD);
+          const area = calculateArea(posA, posB, posC, posD);
+          const triangles = 4;
+          const resultText = `Периметр: ${perimeter.toFixed(2)} м\nПлоща: ${area.toFixed(2)} м²\nТрикутників: ${triangles}`;
+          console.log('Updating text:', resultText);
+          document.querySelector('#result').innerText = resultText; // Оновлюємо текст у <div>
+        } else {
+          document.querySelector('#result').innerText = 'Очікування маркерів...';
+        }
+      }
+    });
+
+    // Додавання компонентів до сцени
+    scene.setAttribute('update-lines', '');
+    scene.setAttribute('update-results', '');
+
+    // Діагностика: перевірка ініціалізації камери
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(() => console.log('Camera access granted'))
+      .catch(err => console.error('Camera access denied:', err));
+  </script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Saturn WebXR Scene</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #ar-container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+    #ar-button {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1;
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.141.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.141.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="ar-container"></div>
+  <script type="module">
+    import * as THREE from 'three';
+    import { ARButton } from 'three/addons/webxr/ARButton.js';
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.xr.enabled = true;
+    document.getElementById('ar-container').appendChild(renderer.domElement);
+
+    document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.setCrossOrigin('anonymous');
+
+    const group = new THREE.Group();
+
+    const saturnGeometry = new THREE.SphereGeometry(0.15, 32, 32);
+    let saturn;
+    textureLoader.load(
+      '../week05/2k_saturn.jpg',
+      (texture) => {
+        texture.colorSpace = 'srgb';
+        const saturnMaterial = new THREE.MeshStandardMaterial({ map: texture });
+        saturn = new THREE.Mesh(saturnGeometry, saturnMaterial);
+        group.add(saturn);
+        console.log('Saturn texture loaded successfully');
+      },
+      undefined,
+      (error) => {
+        console.error('Error loading Saturn texture:', error);
+      }
+    );
+
+    const ringGeometry = new THREE.RingGeometry(0.18625, 0.3425, 64);
+    textureLoader.load(
+      '../week05/2k_saturn_ring_alpha.png',
+      (texture) => {
+        texture.colorSpace = 'srgb';
+        const ringMaterial = new THREE.MeshStandardMaterial({
+          map: texture,
+          side: THREE.DoubleSide,
+          transparent: true
+        });
+        const rings = new THREE.Mesh(ringGeometry, ringMaterial);
+        rings.rotation.x = Math.PI / 2;
+        group.add(rings);
+        console.log('Rings texture loaded successfully');
+      },
+      undefined,
+      (error) => {
+        console.error('Error loading Rings texture:', error);
+      }
+    );
+
+    group.rotation.x = THREE.MathUtils.degToRad(27);
+    group.position.set(0, 0, -1.5); 
+    scene.add(group);
+
+    const pointLight = new THREE.PointLight(0xffffff, 1.5, 10);
+    pointLight.position.set(5, 0, 0);
+    scene.add(pointLight);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+
+    const clock = new THREE.Clock();
+    const animate = () => {
+      const delta = clock.getDelta();
+      if (group) group.rotation.y += (2 * Math.PI / (10 * 60)) * delta; // Saturn rotation
+      renderer.render(scene, camera);
+    };
+
+    renderer.setAnimationLoop(() => {
+      animate();
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
