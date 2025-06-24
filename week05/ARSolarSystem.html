@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script>
+      AFRAME.registerComponent('planet', {
+        schema: {
+          dist: {type: 'number', default: 0},
+          mass: {type: 'number', default: 1},
+          T: {type: 'number', default: 1},
+          name: {type: 'string', default: ''}
+        },
+        init: function() {
+          this.angle = 0;
+          this.center = new THREE.Vector3(0, 0, -20);
+          this.scaleFactor = 1e10;
+
+          const name = this.data.name.toLowerCase();
+          const el = this.el;
+          if (el.getAttribute('geometry')?.primitive === 'sphere') {
+            el.setAttribute('material', `src: ${name}.jpg`);
+          }
+        },
+        tick: function(time, timeDelta) {
+          if (!this.data.T) return;
+
+          this.angle += (timeDelta / 1000) * (2 * Math.PI / this.data.T);
+          const x = Math.cos(this.angle) * this.data.dist / this.scaleFactor;
+          const z = Math.sin(this.angle) * this.data.dist / this.scaleFactor;
+          this.el.object3D.position.set(x, 0, z);
+          this.el.object3D.lookAt(this.center);
+        }
+      });
+
+      AFRAME.registerComponent('main', {
+        init: function() {
+          console.log("Solar system initialized");
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <a-scene>
+      <a-sky color="#000000"></a-sky>
+
+      <!-- Сонце з текстурою -->
+      <a-entity geometry="primitive: sphere; radius: 5"
+                planet="dist: 0; mass: 1.989e30; name: sun"></a-entity>
+
+      <!-- Планети з текстурами -->
+      <a-entity geometry="primitive: sphere; radius: 0.8"
+                planet="dist: 57.910e9; mass: 3.285e23; T: 88; name: mercury"></a-entity>
+
+      <a-entity geometry="primitive: sphere; radius: 1.5"
+                planet="dist: 108.2e9; mass: 4.876e24; T: 224.7; name: venus"></a-entity>
+
+      <a-entity geometry="primitive: sphere; radius: 1.6"
+                planet="dist: 149.598023e9; mass: 5.972168e24; T: 365.256; name: earth"></a-entity>
+
+      <a-entity geometry="primitive: sphere; radius: 1.2"
+                planet="dist: 227.939366e9; mass: 6.4171e23; T: 686.980; name: mars"></a-entity>
+
+      <a-entity geometry="primitive: sphere; radius: 3"
+                planet="dist: 778.479e9; mass: 1.8982e27; T: 4332.59; name: jupiter"></a-entity>
+
+      <!-- Сатурн з кільцем -->
+      <a-entity planet="dist: 1433.53e9; mass: 5.6834e26; T: 10759.22; name: saturn">
+        <a-entity geometry="primitive: sphere; radius: 2.5" material="src: saturn.jpg"></a-entity>
+        <a-ring color="#d2b48c" radius-inner="3" radius-outer="4" rotation="60 20 0"></a-ring>
+      </a-entity>
+
+      <a-entity geometry="primitive: sphere; radius: 2"
+                planet="dist: 2870.972e9; mass: 8.6810e25; T: 30688.5; name: uranus"></a-entity>
+
+      <a-entity geometry="primitive: sphere; radius: 2"
+                planet="dist: 4500e9; mass: 1.02413e26; T: 60195; name: neptune"></a-entity>
+
+      <a-entity main></a-entity>
+      <a-camera position="0 0 50" look-controls="pointerLockEnabled: true"></a-camera>
+    </a-scene>
+  </body>
+</html>

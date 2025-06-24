@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  </head>
+  <body>
+    <a-scene>
+      <a-sky color="#EAF2F8"></a-sky>
+      
+      <!-- Примітиви -->
+      <a-box position="-1 0.5 -3" width="1" height="1" depth="1" color="yellow"></a-box>
+      <a-sphere position="1 0.5 -3" radius="0.5" color="blue"></a-sphere>
+      
+      <!-- Текст -->
+      <a-text value="Текст українською мовою" 
+              position="0 2 -3" 
+              color="green" 
+              width="5"
+              font=../fonts/kyiv.json></a-text>
+      
+      <!-- 3D модель -->
+      <a-entity gltf-model="../models/dog.glb" 
+                position="0 0 -5" 
+                scale="0.5 0.5 0.5"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 5000"></a-entity>
+      
+      <!-- Анімації -->
+      <a-cylinder position="0 0.5 -4" radius="0.5" height="1" color="white"
+                 animation="property: rotation; to: 0 360 0; loop: true; dur: 3000"></a-cylinder>
+    </a-scene>
+  </body>
+</html>

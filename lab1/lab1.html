@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Ханойські вежі - Вибір режиму</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #001a33 0%, #003366 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 800px;
+            padding: 20px;
+        }
+        
+        h1 {
+            font-size: 3em;
+            margin-bottom: 0.5em;
+            color: #FFD700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .description {
+            font-size: 1.2em;
+            margin-bottom: 2em;
+            color: #cccccc;
+        }
+        
+        .mode-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .mode-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #FFD700;
+            border-radius: 15px;
+            padding: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: white;
+            display: block;
+        }
+        
+        .mode-card:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.3);
+        }
+        
+        .mode-card h2 {
+            color: #FFD700;
+            margin-top: 0;
+            font-size: 1.8em;
+        }
+        
+        .mode-card p {
+            color: #cccccc;
+            line-height: 1.6;
+        }
+        
+        .icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        
+        .requirements {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+            font-size: 0.9em;
+            color: #aaa;
+        }
+        
+        .footer {
+            margin-top: 60px;
+            color: #888;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏗️ Ханойські вежі</h1>
+        <p class="description">
+            Інтерактивна візуалізація класичної головоломки з анімацією переміщення кілець
+        </p>
+        
+        <div class="mode-grid">
+            <a href="hanoi-desktop.html" class="mode-card">
+                <div class="icon">🖥️</div>
+                <h2>Desktop версія</h2>
+                <p>Перегляд 3D моделі безпосередньо в браузері з можливістю обертання камери</p>
+                <div class="requirements">
+                    <strong>Вимоги:</strong> Сучасний браузер
+                </div>
+            </a>
+            
+            <a href="hanoi-arjs.html" class="mode-card">
+                <div class="icon">📱</div>
+                <h2>AR.js версія</h2>
+                <p>Доповнена реальність з використанням маркера-патерну</p>
+                <div class="requirements">
+                    <strong>Вимоги:</strong> Камера, роздрукований маркер
+                </div>
+            </a>
+            
+            <a href="hanoi-mindar.html" class="mode-card">
+                <div class="icon">🎯</div>
+                <h2>MindAR версія</h2>
+                <p>Доповнена реальність з розпізнаванням зображень</p>
+                <div class="requirements">
+                    <strong>Вимоги:</strong> Камера, цільове зображення
+                </div>
+            </a>
+        </div>
+        
+        <div class="footer">
+            <p>Створено з використанням A-Frame, AR.js та MindAR</p>
+        </div>
+    </div>
+</body>
+</html>

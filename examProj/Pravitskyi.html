@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Механіка у віртуальному світі</title>
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="control-panel">
+        <h2>Параметри експерименту</h2>
+        
+        <div class="experiment-selector">
+            <label>Експеримент:</label>
+            <select id="experiment-select">
+                <option value="projectile">Балістичний рух</option>
+                <option value="pendulum">Математичний маятник</option>
+                <option value="collision">Зіткнення тіл</option>
+            </select>
+        </div>
+
+        <div class="parameters">
+            <h3>Загальні параметри</h3>
+            <div class="param-group" id="mass1-group">
+                <label>Маса тіла 1 (кг): <span id="mass1-value">1</span></label>
+                <input type="range" id="mass1" min="1" max="10000" step="1" value="1">
+            </div>
+
+            <div class="param-group" id="mass2-group" style="display:none;">
+                <label>Маса тіла 2 (кг): <span id="mass2-value">100</span></label>
+                <input type="range" id="mass2" min="1" max="10000" step="1" value="100">
+            </div>
+            
+            <div class="param-group" id="velocity-group" style="display:none;">
+                <label>Початкова швидкість (м/с): <span id="velocity-value">5</span></label>
+                <input type="range" id="velocity" min="1" max="20" step="1" value="5">
+            </div>
+            
+            <div class="param-group" id="angle-group">
+                <label>Кут запуску (°): <span id="angle-value">45</span></label>
+                <input type="range" id="angle" min="0" max="90" step="5" value="45">
+            </div>
+            
+            <div class="param-group" id="length-group" style="display:none;">
+                <label>Довжина підвісу (м): <span id="length-value">2</span></label>
+                <input type="range" id="length" min="0.5" max="5" step="0.1" value="2">
+            </div>
+            
+            <div class="param-group">
+                <label>Гравітація (м/с²): <span id="gravity-value">9.8</span></label>
+                <input type="range" id="gravity" min="0" max="20" step="0.1" value="9.8">
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="start-btn" class="btn-primary">Старт</button>
+            <button id="reset-btn" class="btn-secondary">Скинути</button>
+        </div>
+
+        <div id="stats">
+            <h3>Поточні показники</h3>
+                <div id="stats-content">
+                    <p>Час: <span id="time">0</span> с</p>
+                    <p>Швидкість: <span id="current-velocity">0</span> м/с</p>
+                    <p>Висота: <span id="height">0</span> м</p>
+                    <p>Кінетична енергія: <span id="kinetic-energy">0</span> Дж</p>
+                    <p>Потенціальна енергія: <span id="potential-energy">0</span> Дж</p>
+                    <p id="total-energy-p" style="display:none;">Сумарна енергія: <span id="total-energy">0</span> Дж</p>
+                    <p id="collisions-p" style="display:none;">Зіткнень: <span id="collisions-count">0</span></p>
+                    <p>Дальність польоту: <span id="last-range">0.00</span> м</p>
+                </div>
+        </div>
+        
+        <div id="ml-prediction">
+            <h3>Прогнозування дальності (ML)</h3>
+            <p>Запустіть симуляцію кілька разів або використайте прискорене навчання.</p>
+            <p>Навчено на: <span id="data-points">0</span> прикладах</p>
+            <div class="controls">
+                <button id="batch-train-btn" class="btn-ml">Прискорити навчання</button>
+                <button id="predict-btn" class="btn-ml">Спрогнозувати</button>
+            </div>
+            <p>Прогноз: <span id="prediction-output">...</span> м</p>
+        </div>
+    </div>
+
+    <a-scene background="color: #ECECEC">
+        <a-entity position="0 1.6 15">
+            <a-camera look-controls wasd-controls></a-camera>
+        </a-entity>
+        <a-light type="ambient" color="#888"></a-light>
+        <a-light type="directional" color="#ffffff" intensity="0.6" position="-1 2 1"></a-light>
+        <a-plane position="0 0 0" rotation="-90 0 0" width="100" height="100" color="#7BC8A4"></a-plane>
+        
+        <a-entity id="projectile-experiment" visible="true">
+             <a-entity id="cannon" position="-10 0.5 0" rotation="0 0 -45">
+                <a-cylinder color="#7A7A7A" height="0.5" radius="0.5" position="0 0.25 0"></a-cylinder>
+                <a-box color="#5A5A5A" width="2" height="0.2" depth="0.2" position="1 0.5 0"></a-box>
+            </a-entity>
+            <a-sphere id="projectile" radius="0.3" color="#FF5733" position="-10 1 0"></a-sphere>
+            <a-entity id="trajectory" line="color: #FF5733; width: 0.05"></a-entity>
+        </a-entity>
+        <a-entity id="pendulum-experiment" visible="false">
+            <a-sphere id="pendulum-anchor" radius="0.1" color="#000" position="0 5 0"></a-sphere>
+            <a-entity id="pendulum-string" line="start: 0 5 0; end: 0 3 0; color: #333"></a-entity>
+            <a-sphere id="pendulum-ball" radius="0.3" color="#4287f5" position="0 3 0"></a-sphere>
+        </a-entity>
+        <a-entity id="collision-experiment" visible="false">
+            <a-box id="box1" position="-5 0.5 0" width="1" height="1" depth="1" color="#FF5733"></a-box>
+            <a-text id="text1" value="m1" color="black" align="center" position="-5 1.7 0"></a-text>
+            <a-box id="box2" position="5 0.5 0" width="1" height="1" depth="1" color="#4287f5"></a-box>
+            <a-text id="text2" value="m2" color="black" align="center" position="5 1.7 0"></a-text>
+            <a-box id="wall-left" position="-15 1 0" width="0.2" height="3" depth="3" color="#888888"></a-box>
+            <a-box id="wall-right" position="15 1 0" width="0.2" height="3" depth="3" color="#888888"></a-box>
+        </a-entity>
+    </a-scene>
+    <script src="script.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</body>
+</html>

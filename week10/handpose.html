@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аналізатор кутів між пальцями</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            margin-bottom: 20px;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #webcam {
+            width: 100%;
+            display: block;
+        }
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .status {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .ready {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .angles-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+        }
+        .angle-item {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .angle-value {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .fallback-image {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: none;
+        }
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 15px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Аналізатор кутів між пальцями</h1>
+        
+        <div id="status" class="status loading">Ініціалізація системи...</div>
+        
+        <div class="video-wrapper">
+            <video id="webcam" width="640" height="480" autoplay playsinline></video>
+            <canvas id="canvas" width="640" height="480"></canvas>
+            <img id="fallbackImage" class="fallback-image" src="hand_placeholder.jpg" alt="Приклад положення руки">
+        </div>
+        
+        <button id="retryBtn" class="btn" style="display: none;">Спробувати знову</button>
+        
+        <div class="angles-container">
+            <h3>Кути між пальцями:</h3>
+            <div id="anglesDisplay">
+                <div class="angle-item"><span>Великий ↔ Вказівний:</span><span class="angle-value">-</span></div>
+                <div class="angle-item"><span>Вказівний ↔ Середній:</span><span class="angle-value">-</span></div>
+                <div class="angle-item"><span>Середній ↔ Безіменний:</span><span class="angle-value">-</span></div>
+                <div class="angle-item"><span>Безіменний ↔ Мізинець:</span><span class="angle-value">-</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/handpose@0.0.7/dist/handpose.min.js"></script>
+    
+    <script>
+        const CONFIG = {
+            videoWidth: 640,
+            videoHeight: 480,
+            maxRetries: 3
+        };
+
+        const videoElement = document.getElementById('webcam');
+        const canvasElement = document.getElementById('canvas');
+        const ctx = canvasElement.getContext('2d');
+        const statusElement = document.getElementById('status');
+        const angleValues = document.querySelectorAll('.angle-value');
+        const fallbackImage = document.getElementById('fallbackImage');
+        const retryBtn = document.getElementById('retryBtn');
+
+        let handposeModel = null;
+        let isTracking = false;
+        let retryCount = 0;
+
+        async function initializeApp() {
+            try {
+                updateStatus("Завантаження TensorFlow.js...", 'loading');
+                await tf.setBackend('webgl');
+
+                updateStatus("Завантаження моделі Handpose...", 'loading');
+                handposeModel = await handpose.load();
+
+                await setupCamera();
+
+                isTracking = true;
+                updateStatus("Система готова. Покажіть руку перед камерою.", 'ready');
+
+                requestAnimationFrame(detectHand);
+
+            } catch (error) {
+                handleInitializationError(error);
+            }
+        }
+
+        async function setupCamera() {
+            updateStatus("Отримання доступу до камери...", 'loading');
+            const constraints = {
+                video: {
+                    width: { ideal: CONFIG.videoWidth },
+                    height: { ideal: CONFIG.videoHeight },
+                    facingMode: "user"
+                },
+                audio: false
+            };
+
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            videoElement.srcObject = stream;
+
+            await new Promise(resolve => {
+                videoElement.onloadedmetadata = () => videoElement.play();
+                videoElement.onloadeddata = () => resolve();
+            });
+        }
+
+        async function detectHand() {
+            if (!isTracking) return;
+
+            if (videoElement.readyState < 2) {
+                requestAnimationFrame(detectHand);
+                return;
+            }
+
+            try {
+                const predictions = await handposeModel.estimateHands(videoElement, true);
+                ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+                if (predictions.length > 0) {
+                    const hand = predictions[0];
+                    drawHandSkeleton(hand);
+                    updateAngles(calculateFingerAngles(hand));
+                } else {
+                    resetAnglesDisplay();
+                }
+            } catch (error) {
+                console.error("Помилка відстеження:", error);
+            }
+
+            requestAnimationFrame(detectHand);
+        }
+
+        function drawHandSkeleton(hand) {
+            const landmarks = hand.landmarks;
+            const fingers = [
+                [0, 1, 2, 3, 4],
+                [0, 5, 6, 7, 8],
+                [0, 9, 10, 11, 12],
+                [0, 13, 14, 15, 16],
+                [0, 17, 18, 19, 20]
+            ];
+        
+            // 🔁 Дзеркалимо canvas
+            ctx.save();
+            ctx.scale(-1, 1);
+            ctx.translate(-canvasElement.width, 0);
+        
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 3;
+            ctx.fillStyle = '#e74c3c';
+        
+            fingers.forEach(finger => {
+                ctx.beginPath();
+                finger.forEach((i, idx) => {
+                    const [x, y] = landmarks[i];
+                    idx === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+            });
+        
+            landmarks.forEach(([x, y]) => {
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+        
+            ctx.restore(); // 🔄 Повертаємо контекст назад
+        }
+
+
+        function calculateFingerAngles(hand) {
+            const l = hand.landmarks;
+            const base = l[0];
+            const tips = {
+                thumb: l[4],
+                index: l[8],
+                middle: l[12],
+                ring: l[16],
+                little: l[20]
+            };
+
+            const vectors = {};
+            for (const [finger, tip] of Object.entries(tips)) {
+                vectors[finger] = [tip[0] - base[0], tip[1] - base[1]];
+            }
+
+            function angleBetween(v1, v2) {
+                const dot = v1[0]*v2[0] + v1[1]*v2[1];
+                const mag1 = Math.hypot(...v1);
+                const mag2 = Math.hypot(...v2);
+                const cos = Math.max(-1, Math.min(1, dot / (mag1 * mag2)));
+                return (Math.acos(cos) * 180 / Math.PI).toFixed(1);
+            }
+
+            return {
+                thumbIndex: angleBetween(vectors.thumb, vectors.index),
+                indexMiddle: angleBetween(vectors.index, vectors.middle),
+                middleRing: angleBetween(vectors.middle, vectors.ring),
+                ringLittle: angleBetween(vectors.ring, vectors.little)
+            };
+        }
+
+        function updateAngles(angles) {
+            angleValues[0].textContent = `${angles.thumbIndex}°`;
+            angleValues[1].textContent = `${angles.indexMiddle}°`;
+            angleValues[2].textContent = `${angles.middleRing}°`;
+            angleValues[3].textContent = `${angles.ringLittle}°`;
+        }
+
+        function resetAnglesDisplay() {
+            angleValues.forEach(el => el.textContent = '-');
+        }
+
+        function updateStatus(message, type) {
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+        }
+
+        function handleInitializationError(error) {
+            console.error("Помилка ініціалізації:", error);
+            updateStatus(error.message || "Помилка ініціалізації", 'error');
+            fallbackImage.style.display = 'block';
+            videoElement.style.display = 'none';
+
+            if (retryCount < CONFIG.maxRetries) {
+                retryBtn.style.display = 'block';
+                retryBtn.onclick = retryInitialization;
+            }
+        }
+
+        function retryInitialization() {
+            retryCount++;
+            updateStatus(`Спроба ${retryCount} з ${CONFIG.maxRetries}...`, 'loading');
+            retryBtn.style.display = 'none';
+            initializeApp();
+        }
+
+        document.addEventListener('DOMContentLoaded', initializeApp);
+        window.addEventListener('beforeunload', () => {
+            isTracking = false;
+            if (videoElement.srcObject) {
+                videoElement.srcObject.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>

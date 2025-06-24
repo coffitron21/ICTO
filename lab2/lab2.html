@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Ханойські вежі - Three.js MindAR версія</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-three.prod.js"></script>
+
+    <style>
+        /* CSS стилі залишаються без змін */
+        body { margin: 0; overflow: hidden; width: 100%; height: 100%; position: fixed; }
+        #container { width: 100%; height: 100%; position: relative; }
+        .loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; color: white; font-family: Arial, sans-serif; flex-direction: column; }
+        .loading-overlay h2 { color: #FFD700; }
+        #ar-canvas { width: 100%; height: 100%; display: block; }
+        .permission-prompt { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: none; justify-content: center; align-items: center; z-index: 1001; color: white; font-family: Arial, sans-serif; flex-direction: column; text-align: center; padding: 20px; }
+        .permission-button { margin-top: 20px; padding: 10px 20px; background: #FFD700; color: black; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay">
+        <h2>Завантаження AR...</h2>
+        <p>Наведіть камеру на маркер</p>
+    </div>
+
+    <div class="permission-prompt">
+        <h2>Для роботи AR потрібен доступ до камери</h2>
+        <p>Будь ласка, надайте дозвіл на використання вашої камери</p>
+        <button class="permission-button">Дозволити доступ до камери</button>
+    </div>
+    
+    <div id="container">
+        <canvas id="ar-canvas"></canvas>
+    </div>
+
+    <script type="module">
+        // ДОДАНО: Імпортуємо бібліотеку для анімацій TWEEN
+        import TWEEN from 'https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@18.6.4/dist/tween.esm.js';
+
+        const { MindARThree } = window.MINDAR.IMAGE;
+        const THREE = window.MINDAR.IMAGE.THREE;
+
+        // Main variables
+        let mindarThree;
+        let hanoiGroup;
+        let rings = [];
+        // ДОДАНО: Змінні для керування анімацією
+        let animationHasRun = false;
+        let initialRingPositions = [];
+
+        // Функція перевірки дозволу на камеру залишається без змін
+        async function checkCameraPermissions() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                stream.getTracks().forEach(track => track.stop());
+                document.querySelector('.permission-prompt').style.display = 'none';
+                initAR();
+            } catch (error) {
+                console.error('Camera permission denied:', error);
+                document.querySelector('.loading-overlay').style.display = 'none';
+                document.querySelector('.permission-prompt').style.display = 'flex';
+            }
+        }
+
+        async function initAR() {
+            document.querySelector('.loading-overlay').style.display = 'flex';
+            
+            try {
+                mindarThree = new MindARThree({
+                    container: document.getElementById('container'),
+                    imageTargetSrc: './hanoi.mind',
+                    maxTrack: 1,
+                    uiLoading: "no",
+                    uiScanning: "no",
+                });
+
+                const { renderer, scene, camera } = mindarThree;
+
+                hanoiGroup = new THREE.Group();
+                hanoiGroup.scale.set(0.5, 0.5, 0.5);
+                hanoiGroup.visible = false;
+
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                hanoiGroup.add(ambientLight);
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+                directionalLight.position.set(5, 10, 5);
+                hanoiGroup.add(directionalLight);
+                
+                // ... (код для створення основи та стрижнів залишається без змін) ...
+                const baseGeometry = new THREE.BoxGeometry(10, 0.5, 3);
+                const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+                const base = new THREE.Mesh(baseGeometry, baseMaterial);
+                hanoiGroup.add(base);
+
+                const rodMaterial = new THREE.MeshStandardMaterial({ color: 0x2c2c2c });
+                [-3, 0, 3].forEach(xPos => {
+                    const rod = new THREE.Mesh( new THREE.CylinderGeometry(0.15, 0.15, 4, 32), rodMaterial);
+                    rod.position.set(xPos, 2.25, 0);
+                    hanoiGroup.add(rod);
+                });
+
+                // Створення кілець
+                const ringColors = [0x8B008B, 0x0000FF, 0x00CED1, 0x00FF00, 0xFFD700, 0xFF8C00, 0xFF0000];
+                const ringRadii = [1.4, 1.2, 1.0, 0.8, 0.6, 0.4, 0.25];
+                const ringHeight = 0.3;
+
+                for (let i = 0; i < 7; i++) {
+                    const ringGeometry = new THREE.TorusGeometry(ringRadii[i], 0.15, 16, 100);
+                    const ringMaterial = new THREE.MeshStandardMaterial({ color: ringColors[i], metalness: 0.1, roughness: 0.5 });
+                    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                    
+                    const yPos = 0.25 + ringHeight/2 + i * ringHeight;
+                    ring.position.set(-3, yPos, 0);
+                    ring.rotation.x = Math.PI / 2;
+                    ring.userData.size = i;
+                    hanoiGroup.add(ring);
+                    rings.push(ring);
+
+                    // ДОДАНО: Зберігаємо початкову позицію кожного кільця для скидання
+                    initialRingPositions.push(ring.position.clone());
+                }
+
+                const anchor = mindarThree.addAnchor(0);
+                anchor.group.add(hanoiGroup);
+                
+                // ЗМІНЕНО: Обробники подій для маркера
+                anchor.onTargetFound = () => {
+                    console.log("Знайдено маркер!");
+                    hanoiGroup.visible = true;
+                    // Запускаємо анімацію, тільки якщо вона ще не була запущена
+                    if (!animationHasRun) {
+                        animateHanoiSort();
+                        animationHasRun = true;
+                    }
+                };
+
+                anchor.onTargetLost = () => {
+                    console.log("Втрачено маркер.");
+                    hanoiGroup.visible = false;
+                    
+                    // ДОДАНО: Скидання анімації та повернення кілець на початкові позиції
+                    TWEEN.removeAll(); // Зупиняємо всі активні анімації
+                    for (let i = 0; i < rings.length; i++) {
+                        rings[i].position.copy(initialRingPositions[i]);
+                    }
+                    animationHasRun = false; // Дозволяємо запустити анімацію знову
+                };
+
+                await mindarThree.start();
+                document.querySelector('.loading-overlay').style.display = 'none';
+
+                // ЗМІНЕНО: Запускаємо цикл рендерингу та оновлення анімацій
+                renderer.setAnimationLoop(() => {
+                    // ДОДАНО: Оновлюємо стан всіх анімацій на кожному кадрі
+                    TWEEN.update();
+                    renderer.render(scene, camera);
+                });
+
+            } catch (error) {
+                console.error('Error initializing AR:', error);
+                document.querySelector('.loading-overlay').style.display = 'none';
+                alert('Помилка ініціалізації AR. Будь ласка, перезавантажте сторінку.');
+            }
+        }
+        
+        // ДОДАНО: Функція для анімації переміщення кілець
+        function animateHanoiSort() {
+            const liftY = 5; // Висота, на яку піднімається кільце
+            const ringHeight = 0.3;
+            const baseRingY = 0.25 + ringHeight / 2;
+            const animationDuration = 400; // Тривалість кожного етапу руху (в мс)
+            let currentDelay = 0; // Початкова затримка перед початком анімації
+
+            const rodXPositions = { middle: 0, right: 3 };
+            const ringsOnRod = { middle: 0, right: 0 };
+
+            // Перебираємо кільця від найменшого (зверху) до найбільшого (знизу)
+            // У нашому масиві найменше кільце має найбільший індекс (6)
+            for (let i = rings.length - 1; i >= 0; i--) {
+                const ring = rings[i];
+                // Нумерація з 1, а не з 0. Кільце з size: 0 - це кільце №1 (непарне)
+                const ringNumber = ring.userData.size + 1; 
+
+                let targetRodKey;
+                // Визначаємо цільовий стрижень
+                if (ringNumber % 2 === 0) { // Парні на середній
+                    targetRodKey = 'middle';
+                } else { // Непарні на правий
+                    targetRodKey = 'right';
+                }
+
+                const targetX = rodXPositions[targetRodKey];
+                // Розраховуємо цільову висоту на новому стрижні
+                const targetY = baseRingY + ringsOnRod[targetRodKey] * ringHeight;
+                ringsOnRod[targetRodKey]++; // Збільшуємо лічильник кілець на цьому стрижні
+
+                // Створюємо послідовність анімацій для одного кільця
+                const tweenUp = new TWEEN.Tween(ring.position)
+                    .to({ y: liftY }, animationDuration)
+                    .easing(TWEEN.Easing.Quadratic.Out);
+
+                const tweenAcross = new TWEEN.Tween(ring.position)
+                    .to({ x: targetX }, animationDuration * 1.5) // Робимо горизонтальний рух трохи довшим
+                    .easing(TWEEN.Easing.Quadratic.InOut);
+
+                const tweenDown = new TWEEN.Tween(ring.position)
+                    .to({ y: targetY }, animationDuration)
+                    .easing(TWEEN.Easing.Quadratic.In);
+                
+                // З'єднуємо анімації в один ланцюжок
+                tweenUp.chain(tweenAcross);
+                tweenAcross.chain(tweenDown);
+
+                // Встановлюємо затримку, щоб кожне наступне кільце починало рух
+                // тільки після того, як попереднє завершило свій шлях.
+                tweenUp.delay(currentDelay);
+                
+                // Запускаємо першу анімацію в ланцюжку
+                tweenUp.start();
+
+                // Збільшуємо загальну затримку для наступного кільця
+                currentDelay += animationDuration * 3;
+            }
+        }
+
+        // Обробники подій для кнопок і зміни розміру вікна залишаються без змін
+        document.querySelector('.permission-button').addEventListener('click', () => {
+            document.querySelector('.permission-prompt').style.display = 'none';
+            checkCameraPermissions();
+        });
+        window.addEventListener('resize', () => {
+            const { renderer, camera } = mindarThree;
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            checkCameraPermissions();
+        });
+
+    </script>
+</body>
+</html>

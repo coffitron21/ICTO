@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Ханойські вежі - Desktop версія</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="hanoi.js"></script>
+</head>
+<body>
+    <a-scene background="color: #001a33">
+        <!-- Освітлення -->
+        <a-light type="ambient" color="#ffffff" intensity="0.5"></a-light>
+        <a-light type="directional" position="5 10 5" color="#ffffff" intensity="0.5"></a-light>
+        <a-light type="point" position="0 5 0" color="#ffffff" intensity="0.3"></a-light>
+
+        <!-- Вставляємо Ханойські вежі -->
+        <a-entity id="hanoiTowers"></a-entity>
+
+        <!-- Камера -->
+        <a-entity position="0 4 8" rotation="-20 0 0">
+            <a-camera>
+                <a-cursor color="#FFD700" fuse="false"></a-cursor>
+            </a-camera>
+        </a-entity>
+
+        <!-- Текст з інструкціями -->
+        <a-text value="Ханойські вежі\nПарні кільця → середній стрижень\nНепарні кільця → правий стрижень" 
+                position="0 5.5 -2" align="center" color="#FFD700" font="kelsonsans" width="8">
+        </a-text>
+
+        <!-- Підписи стрижнів -->
+        <a-text value="Початковий" position="-3 -0.5 0" align="center" color="#ffffff" scale="0.5 0.5 0.5"></a-text>
+        <a-text value="Парні" position="0 -0.5 0" align="center" color="#ffffff" scale="0.5 0.5 0.5"></a-text>
+        <a-text value="Непарні" position="3 -0.5 0" align="center" color="#ffffff" scale="0.5 0.5 0.5"></a-text>
+
+        <!-- Площина-підлога -->
+        <a-plane position="0 -0.01 0" rotation="-90 0 0" width="15" height="10" color="#1a1a1a" 
+                 shadow="receive: true"></a-plane>
+    </a-scene>
+
+    <script>
+        // Додаємо Ханойські вежі після завантаження
+        window.addEventListener('load', function() {
+            const container = document.querySelector('#hanoiTowers');
+            container.innerHTML = createHanoiTowersHTML();
+        });
+    </script>
+</body>
+</html>
