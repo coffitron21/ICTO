@@ -1,17 +1,51 @@
 <!doctype html>
 <html>
   <head>
+    <title>AR.js з трьома маркерами</title>
+    <meta charset="utf-8">
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <style>
+      body {
+        font-family: sans-serif;
+        background: #222;
+        color: #eee;
+        margin: 10px;
+      }
+      #markers-links {
+        margin-bottom: 20px;
+      }
+      #markers-links a {
+        color: #00d8ff;
+        text-decoration: none;
+        margin-right: 15px;
+      }
+    </style>
   </head>
   <body>
+    <div id="markers-links">
+      <strong>Маркер Hiro:</strong> 
+      <a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/data/patt.hiro" target="_blank">hiro.patt</a> |
+      <strong>Маркер Kanji:</strong> 
+      <a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/data/patt.kanji" target="_blank">kanji.patt</a> |
+      <strong>Маркер Hanoi (власний):</strong> 
+      <a href="#" target="_blank">hanoi.patt</a>
+    </div>
+
     <a-scene embedded arjs="debugUIEnabled: false">
       <a-marker preset="hiro">
         <a-box position="0 0.5 0" color="blue"></a-box>
       </a-marker>
+
       <a-marker preset="kanji">
         <a-sphere position="0 0.5 0" radius="0.5" color="yellow"></a-sphere>
       </a-marker>
+
+      <!-- Третій маркер з кастомним патерном hanoi.patt -->
+      <a-marker type="pattern" url="./hanoi.patt">
+        <a-cylinder position="0 0.5 0" radius="0.3" height="1" color="green"></a-cylinder>
+      </a-marker>
+
       <a-entity camera></a-entity>
     </a-scene>
   </body>
